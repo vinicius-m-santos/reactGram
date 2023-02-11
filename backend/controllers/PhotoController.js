@@ -151,13 +151,81 @@ const updatePhoto = async(req, res) => {
     } catch (error) {
 
         res.status(422).json({errors: ['Ocorreu um erro, por favor, tente novamente mais tarde.']});
-    }
-
-
-
-
+    };
 
 }
+
+    // like funcionality
+const likePhoto = async(req, res) => {
+
+    const {id} = req.params;
+
+    const reqUser = req.user;
+
+    try {
+
+        const photo = await Photo.findById(id);
+
+        // Check if photo exists
+        if(!photo) {
+            res.status(404).json({errors: ["Foto não encontrada"]});
+        }
+
+        // Check if user already liked the photo
+        if(photo.likes.includes(reqUser._id)) {
+            res.status(422).json({errors: ["Você já curtiu a foto."]});
+            return;
+        }
+
+        // Put user id in likes array
+        photo.likes.push(reqUser._id);
+
+        photo.save();
+
+        res.status(200).json({photoId: id, userId: reqUser._id, message: "Você curtiu a foto."});
+
+    } catch (error) {
+        res.status(422).json({errors: ['Ocorreu um erro, por favor, tente novamente mais tarde.']})
+    }
+};
+
+const commentPhoto = async (req, res) => {
+
+    const {id} = req.params;
+    const {comment} = req.body;
+
+    const reqUser = req.user;
+
+    const user = await User.findById(reqUser._id);
+
+    const photo = await Photo.findById(id);
+
+    // check if photo exists
+    if(!photo) {
+
+        res.status(422).json({errors: ['Foto não encontrada.']});
+        return;
+    }
+
+    // Put comment in the array of comments
+    const userComment = {
+        comment,
+        userName: user.name,
+        userImage: user.profileImage,
+        userId: user._id
+    };
+
+    photo.comments.push(userComment);
+
+    await photo.save();
+
+    res.status(200).json({
+        comment: userComment,
+        message: "O comentário foi adicionado com sucesso",
+    })
+    
+}
+
 
 module.exports = {
     insertPhoto,
@@ -165,5 +233,7 @@ module.exports = {
     getAllPhotos,
     getUserPhotos,
     getPhotoById,
-    updatePhoto
+    updatePhoto,
+    likePhoto,
+    commentPhoto
 }
